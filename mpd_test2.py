@@ -1,6 +1,7 @@
 import requests
 from xml.dom.minidom import parseString
 from datetime import datetime
+import re
 
 class mpd(object):
 	
@@ -47,8 +48,10 @@ class mpd(object):
 			except ValueError:
 				return 0
 	'''
+
 	def addDateTimePattern(self, pattern):
-		self.addDateTimePattern.append(re.compile(pattern))
+		self.addDateTimePatterns.append(re.compile(pattern))
+
 	def convertTime(self, runtime):
 		m = None
 		for r in self.datetimePatterns:
@@ -58,41 +61,43 @@ class mpd(object):
 
 		# Check if we cannot match any of our format
 		# Just return 0
-		if not m:
-			return 0
+			if not m:
+				return 0
 		# Get hour/minutes/second from 'm' object by group name
 
 		# Need to check if there is a group or not. if not use 0
 		# For example:
 		# PT01H30M will don't have 'secs' group, so we will use 0 for secods
-		h = 0
-		m = 0
-		s = 0
-		ms = 0
-		if 'hour' in m.groupdict().keys():
-			h = m.group('hour')
+			h = 0
+			mi = 0
+			s = 0
+			ms = 0
+			if 'hour' in m.groupdict().keys():
+				h = int(m.group('hour'))
 
-		if 'minutes' in m.groupdict().keys():
-			m = m.group('minutes')
+			if 'minutes' in m.groupdict().keys():
+				mi = int(m.group('minutes'))
 
-		if 'secs' in m.groupdict().keys():
-			s = m.group('secs')
+			if 'secs' in m.groupdict().keys():
+				s = int(m.group('secs'))
 
 
-		return (h*3600) + (m*60) + s
+			return (h*3600) + (m*60) + s
 
-obj = mpd(‘someurl’)
 
 #add pattern
+'''
 obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)\.(?P<mil>\d+)S")
 obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
 obj.addDateTimePattern("PT(?P<hour>\d+)H")
 obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)\.(?P<mil>\d+)S")
-
+ 
+test test
+'''
 
 
 # parsing manifest
-obj.parse()
+
 
 
 class subtitle(object):
