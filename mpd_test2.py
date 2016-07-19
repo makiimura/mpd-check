@@ -92,7 +92,7 @@ obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
 obj.addDateTimePattern("PT(?P<hour>\d+)H")
 obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)\.(?P<mil>\d+)S")
  
-test test
+test test test
 '''
 
 
