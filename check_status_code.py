@@ -33,7 +33,16 @@ for line in lines[1:]:
 
 		if items[1] == 'Web':
 		#if items[1] == 'Web' or items[1] == 'Android':	
+   			print "Checking %s" % items[2]
    			obj = mpd(items[2])
+
+   			#obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)\.(?P<mil>\d+)S")
+			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)")
+			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
+			obj.addDateTimePattern("PT(?P<hour>\d+)H")
+			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)")
+
+
    			obj.parse()
    			items.append(str(obj.mediaPresentationDuration))
 
