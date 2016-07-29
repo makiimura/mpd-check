@@ -1,95 +1,180 @@
 import requests
-from mpd_test import mpd 
+from xml.dom.minidom import parseString
+from datetime import datetime
+import re
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--in', action="store", dest='inputFileName')
-parser.add_argument('--out', action='store', dest='outputFileName')
- 
-arguments = parser.parse_args()
-#print arguments.inputFileName
-#print arguments.outputFileName
- 
-filename = arguments.inputFileName
-fd = open(filename,'rt')
-
-outfile = arguments.outputFileName
-
-
-#filename = r'/Users/pataridus/python/input/export7_nano.csv'
-#--> filename = raw_input("Input file : ")
-#--> fd = open(filename,'rt')
-#outfile = r'/Users/pataridus/python/output/output7_nano.csv'
-#--> outfile = raw_input("Output file : ")
-
-
-fdout = open(outfile, 'wt')
-lines = fd.readlines()
-
-
-#header = 'id,title,url'
-#fdout.write('id,title,url,status,runtime,audio,subtitle\n')
-fdout.write('id,profile,url,status,runtime,audio,subtitle\n')
-
-
-#start check row2 except header
-for line in lines[1:]:
-	items = line.strip().split(',')
-	#print items[-1] = url
+class mpd(object):
 	
-	
-	print "Checking %s" % items[2]
-	#check array[2] in list = url column
-	if requests.head(items[2]).status_code ==200:
+	def __init__(self, url):
+		self.url = url
+		self.mediaPresentationDuration = None
+		self.audios = list()
+		self.video = None
+		self.subtitles = list()
+		self.datetimePatterns = list()
 
+	def parse(self):
+		# load mpd from url
+		response = requests.get(self.url)
+		if response.status_code != 200:
+			return False
+
+
+		root = parseString(response.content)
+
+		# get mediaPresentationDuration
+		mpd = root.getElementsByTagName('MPD')[0]
+		temp = str(mpd.attributes['mediaPresentationDuration'].value)
+		self.mediaPresentationDuration = self.convertTime(temp)
+
+		#get video
+		adaptationsets = mpd.getElementsByTagName('AdaptationSet')
+		for ad in adaptationsets:
+			if ad.hasAttribute('contentType') and ad.getAttribute('contentType') == 'video':
+				self.video = video(ad)
+			elif ad.hasAttribute('contentType') and ad.getAttribute('contentType') == 'audio':
+				self.audios.append(audio(ad))
+			elif ad.hasAttribute('mimeType') and ad.getAttribute('mimeType') == 'text/vtt':
+				self.subtitles.append(subtitle(ad))
+
+
+		return True
+
+	'''
+	def convertTime(self, runtime):
+			try: 
+				d = datetime.strptime(runtime, "PT%HH%MM%S.%fS")
+				return (d.hour*3600)+(d.minute*60)+(d.second)
+			except ValueError:
+				return 0
+	'''
+
+	def addDateTimePattern(self, pattern):
+		self.datetimePatterns.append(re.compile(pattern))
+
+	def convertTime(self, runtime):
+		m = None
+		for r in self.datetimePatterns:
+			m = r.match(runtime)
+			if m:
+				break
+
+		# Check if we cannot match any of our format
+		# Just return 0
+		if not m:
+			return 0
+		# Get hour/minutes/second from 'm' object by group name
+
+		# Need to check if there is a group or not. if not use 0
+		# For example:
+		# PT01H30M will don't have 'secs' group, so we will use 0 for secods
+		h = 0
+		mi = 0
+		s = 0
+		ms = 0
 		
-		items.append('Found')
+		if 'hour' in m.groupdict().keys():
+			h = int(m.group('hour'))
 
-		if items[1] == 'Web':
-		#if items[1] == 'Web' or items[1] == 'Android':	
-   			#print "Checking %s" % items[2]
-   			obj = mpd(items[2])
+		if 'minutes' in m.groupdict().keys():
+			mi = int(m.group('minutes'))
 
-   			#obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)\.(?P<mil>\d+)S")
-			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)")
-			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
-			obj.addDateTimePattern("PT(?P<hour>\d+)H")
-			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)")
-			obj.addDateTimePattern("PT(?P<minutes>\d+)M(?P<secs>\d+)")
+		if 'secs' in m.groupdict().keys():
+			s = int(m.group('secs'))
 
 
-   			obj.parse()
-   			items.append(str(obj.mediaPresentationDuration))
+		return (h*3600) + (mi*60) + s
 
-   			temp_arr_audio = []
-   			for audio in obj.audios:
-   				temp_arr_audio.append(audio.lang)
-   			temp_str_audio = ','.join(sorted(temp_arr_audio))
-   			items.append("\"%s\"" %temp_str_audio.upper())
 
-   			temp_arr_subs = []
-			for sub in obj.subtitles:
-				temp_arr_subs.append(sub.lang)
-			temp_str_subs = ','.join(sorted(temp_arr_subs))
-   			items.append("\"%s\""%temp_str_subs.upper())
-		else:
-   			items.append('--')
+#add pattern
+'''
+obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)\.(?P<mil>\d+)S")
+obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
+obj.addDateTimePattern("PT(?P<hour>\d+)H")
+obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)\.(?P<mil>\d+)S")
+ 
+test test test
+'''
+
+
+# parsing manifest
 
 
 
+class subtitle(object):
 
-		#print items[1] + '[OK]'
+	def __init__(self, element):
+		if element.getAttribute('mimeType') != 'text/vtt':
+			raise ValueError
+
+		self.mimeType = element.getAttribute('mimeType')
+		self.lang = element.getAttribute('lang')
+
+
+class video(object):
+
+	def __init__(self, element):
+		if element.getAttribute('contentType') != 'video':
+			raise ValueError
+
+		self.lang = element.getAttribute('lang')
+		self.maxBandwidth = int(element.getAttribute('maxBandwidth'))
+		self.minBandwidth = int(element.getAttribute('minBandwidth'))
+		self.frameRate = element.getAttribute('frameRate')
+		self.codec = element.getAttribute('codecs')
+		self.mimeType = element.getAttribute('mimeType')
+
+
+class audio(object):
+	def __init__(self, element):
+		if element.getAttribute('contentType') != 'audio':
+			raise ValueError
+
+		self.lang = element.getAttribute('lang')
+		self.minBandwidth = int(element.getAttribute('minBandwidth'))
+		self.maxBandwidth = int(element.getAttribute('maxBandwidth'))
+		self.samplingRate = int(element.getAttribute('audioSamplingRate'))
+		self.codec = element.getAttribute('codecs')
+		#self.paint = 'hello'
+		self.mimeType = element.getAttribute('mimeType')
+
+
+
+'''
+def test():
+	test_url = r'http://cdn.goprimetime.info/video/1/A534e59000080/0/Manifest-wh.mpd'
+	obj = mpd(test_url)
+	if obj.parse():
+		print "------ Video -----"
+		print "Duration : %d" % obj.mediaPresentationDuration
+		#print obj.video.codec
+		#print obj.video.maxBandwidth
+		#print obj.video.minBandwidth
+		#print obj.video.frameRate
+		#print obj.video.mimeType
+		print "------ Audio -----"
+		for audio in obj.audios:
+			print audio.lang
+			#print audio.minBandwidth
+			#print audio.maxBandwidth
+			#print audio.codec
+			#print audio.mimeType
+			#print audio.paint
+			#print ""
+
+		print "----- Subtitles -----"
+		for sub in obj.subtitles:
+			print sub.lang
+			#print sub.mimeType
+			#print ""
 	else:
-		items.append('Not Found')
-		#print items[1] + ' [Not Found]'
+		print "Manifest not found"		
 
-	#items.append('1234')
-	#items.append("\"EN,TH\"")
-	#items.append("\"EN,TH\"")
-	outstring = ','.join(items)
-	fdout.write(outstring)
-	fdout.write('\n')
 
-#close(fdout)
-#close(fd)
+
+if __name__=='__main__':
+	test()
+'''
+
+
 

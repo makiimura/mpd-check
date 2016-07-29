@@ -1,22 +1,36 @@
 import requests
 from mpd_test import mpd 
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--in', action="store", dest='inputFileName')
+parser.add_argument('--out', action='store', dest='outputFileName')
  
+arguments = parser.parse_args()
+#print arguments.inputFileName
+#print arguments.outputFileName
+ 
+filename = arguments.inputFileName
+fd = open(filename,'rt')
+
+outfile = arguments.outputFileName
 
 
 #filename = r'/Users/pataridus/python/input/export7_nano.csv'
-filename = raw_input("Input file : ")
-fd = open(filename,'rt')
+#--> filename = raw_input("Input file : ")
+#--> fd = open(filename,'rt')
 #outfile = r'/Users/pataridus/python/output/output7_nano.csv'
-outfile = raw_input("Output file : ")
+#--> outfile = raw_input("Output file : ")
 
 
 fdout = open(outfile, 'wt')
 lines = fd.readlines()
+
+
 #header = 'id,title,url'
 #fdout.write('id,title,url,status,runtime,audio,subtitle\n')
 fdout.write('id,profile,url,status,runtime,audio,subtitle\n')
 
-print "Print si"
 
 #start check row2 except header
 for line in lines[1:]:
