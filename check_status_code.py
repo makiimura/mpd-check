@@ -16,7 +16,7 @@ lines = fd.readlines()
 #fdout.write('id,title,url,status,runtime,audio,subtitle\n')
 fdout.write('id,profile,url,status,runtime,audio,subtitle\n')
 
-
+print "Print si"
 
 #start check row2 except header
 for line in lines[1:]:
@@ -24,7 +24,7 @@ for line in lines[1:]:
 	#print items[-1] = url
 	
 	
-
+	print "Checking %s" % items[2]
 	#check array[2] in list = url column
 	if requests.head(items[2]).status_code ==200:
 
@@ -33,7 +33,7 @@ for line in lines[1:]:
 
 		if items[1] == 'Web':
 		#if items[1] == 'Web' or items[1] == 'Android':	
-   			print "Checking %s" % items[2]
+   			#print "Checking %s" % items[2]
    			obj = mpd(items[2])
 
    			#obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M(?P<secs>\d+)\.(?P<mil>\d+)S")
@@ -41,6 +41,7 @@ for line in lines[1:]:
 			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<minutes>\d+)M")
 			obj.addDateTimePattern("PT(?P<hour>\d+)H")
 			obj.addDateTimePattern("PT(?P<hour>\d+)H(?P<secs>\d+)")
+			obj.addDateTimePattern("PT(?P<minutes>\d+)M(?P<secs>\d+)")
 
 
    			obj.parse()

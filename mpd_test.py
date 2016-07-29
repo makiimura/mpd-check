@@ -135,7 +135,7 @@ class audio(object):
 		self.maxBandwidth = int(element.getAttribute('maxBandwidth'))
 		self.samplingRate = int(element.getAttribute('audioSamplingRate'))
 		self.codec = element.getAttribute('codecs')
-		self.paint = 'hello'
+		#self.paint = 'hello'
 		self.mimeType = element.getAttribute('mimeType')
 
 
